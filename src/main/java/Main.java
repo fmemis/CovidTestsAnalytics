@@ -44,9 +44,8 @@ public class Main {
                 reportTime = LocalDateTime.parse(reportDateTimeString, dateTimeFormat);
             }
 
-            String pdfUrl = "https://eody.gov.gr/wp-content/uploads/2020/11/covid-gr-daily-report-" + dateFormat.format(currentDate) + ".pdf";
-            String jsonFilePath = saveDirectory + dateFormat.format(currentDate) + ".json";
-            String weeklyJsonFilePath = saveDirectory + dateFormat.format(currentDate) + "-weekly.json";
+            String pdfUrl = "https://eody.gov.gr/wp-content/uploads/" +  currentDate.getYear() + "/"
+                    + currentDate.getMonthValue() + "/covid-gr-daily-report-" + dateFormat.format(currentDate) + ".pdf";
             URL url = new URL(pdfUrl);
 
             LocalDateTime now = LocalDateTime.now();
@@ -67,13 +66,24 @@ public class Main {
             }
             //InputStream in = new URL("https://eody.gov.gr/wp-content/uploads/2020/11/covid-gr-daily-report-20201102.pdf").openStream();
             System.out.println("Tα τεστς για σημερα "  + currentDate + ":");
+
             InputStream in = url.openStream();
             Files.copy(in, Paths.get(currentFilePath), StandardCopyOption.REPLACE_EXISTING);
             in.close();
-
             File f = new File(currentFilePath);
             Map<String, String> todaysNumbers = helperClass.parseEodyPdf(f);
+
             f = new File(previousFilePath);
+            //if for some reason yesterday's pdf is deleted from file system.
+            if (!f.exists()) {
+                pdfUrl = "https://eody.gov.gr/wp-content/uploads/" +  currentDate.minusDays(1).getYear() + "/"
+                        + currentDate.minusDays(1).getMonthValue() + "/covid-gr-daily-report-" + dateFormat.format(currentDate.minusDays(1)) + ".pdf";
+                url = new URL(pdfUrl);
+                in = url.openStream();
+                Files.copy(in, Paths.get(previousFilePath), StandardCopyOption.REPLACE_EXISTING);
+                in.close();
+                f = new File(previousFilePath);
+            }
             Map<String, String> yesterdaysNumbers = helperClass.parseEodyPdf(f);
 
 
@@ -108,6 +118,10 @@ public class Main {
             json.put("intubatedPatients", intubatedPatients);
 
             String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
+
+            String jsonFilePath = saveDirectory + dateFormat.format(currentDate) + ".json";
+            String weeklyJsonFilePath = saveDirectory + dateFormat.format(currentDate) + "-weekly.json";
+
             helperClass.writeJsonFile(jsonString,jsonFilePath);
 
             if (currentDate.getDayOfWeek().toString().equals(weeklyAverageDay)) {
