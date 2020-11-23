@@ -20,7 +20,7 @@ public class Main {
     private static final DateTimeFormatter dateTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final String reportTimeString = " 18:15";
     private static final String saveDirectory = "/home/fotis/EodyReports/";
-    private static final String startingExistingPdfReport = "/home/fotis/EodyReports/20201120.pdf";
+    private static final String startingExistingPdfReport = "/home/fotis/EodyReports/20201122.pdf";
     private static final String weeklyAverageDay = "FRIDAY";
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -66,10 +66,8 @@ public class Main {
             }
             //InputStream in = new URL("https://eody.gov.gr/wp-content/uploads/2020/11/covid-gr-daily-report-20201102.pdf").openStream();
             System.out.println("Tα τεστς για σημερα "  + currentDate + ":");
+            helperClass.copyPdfFromEodySite(pdfUrl, currentFilePath);
 
-            InputStream in = url.openStream();
-            Files.copy(in, Paths.get(currentFilePath), StandardCopyOption.REPLACE_EXISTING);
-            in.close();
             File f = new File(currentFilePath);
             Map<String, String> todaysNumbers = helperClass.parseEodyPdf(f);
 
@@ -78,10 +76,7 @@ public class Main {
             if (!f.exists()) {
                 pdfUrl = "https://eody.gov.gr/wp-content/uploads/" +  currentDate.minusDays(1).getYear() + "/"
                         + currentDate.minusDays(1).getMonthValue() + "/covid-gr-daily-report-" + dateFormat.format(currentDate.minusDays(1)) + ".pdf";
-                url = new URL(pdfUrl);
-                in = url.openStream();
-                Files.copy(in, Paths.get(previousFilePath), StandardCopyOption.REPLACE_EXISTING);
-                in.close();
+                helperClass.copyPdfFromEodySite(pdfUrl, previousFilePath);
                 f = new File(previousFilePath);
             }
             Map<String, String> yesterdaysNumbers = helperClass.parseEodyPdf(f);
@@ -106,25 +101,13 @@ public class Main {
             System.out.println(intubatedPatients + " διασωληνωμενοι\n");
             System.out.println("Το ποσοστό θετικότητας στα τεστ είναι " + percentage + "%\n");
 
-            var mapper = new ObjectMapper();
-            var json = mapper.createObjectNode();
-
-            json.put("cases", totalCases);
-            json.put("totalTests", actualToday);
-            json.put("pcrTests", totalMoriaka);
-            json.put("rapidTests", totalRapid);
-            json.put("positivityPercentage", percentage);
-            json.put("deaths",deaths);
-            json.put("intubatedPatients", intubatedPatients);
-
-            String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
-
             String jsonFilePath = saveDirectory + dateFormat.format(currentDate) + ".json";
+            helperClass.createDailyJson(actualToday, totalMoriaka, totalRapid, totalCases, deaths, intubatedPatients, percentage, jsonFilePath);
+
             String weeklyJsonFilePath = saveDirectory + dateFormat.format(currentDate) + "-weekly.json";
-
-            helperClass.writeJsonFile(jsonString,jsonFilePath);
-
             if (currentDate.getDayOfWeek().toString().equals(weeklyAverageDay)) {
+                var mapper = new ObjectMapper();
+                var json = mapper.createObjectNode();
                 weeklyAverages = helperClass.calculateWeeklyStatistics(saveDirectory);
                 System.out.println("Έγιναν " + weeklyAverages.get("averageTests") + " tests κατά μέσο όρο την προηγούμενη βδομαδα");
                 System.out.println("Yπήρχαν " + weeklyAverages.get("averageTests") + " κρούσματα κατά μέσο όρο την προηγούμενη βδομαδα");
@@ -134,7 +117,7 @@ public class Main {
                 json.put("averageTests",weeklyAverages.get("averageTests"));
                 json.put("averageCases",weeklyAverages.get("averageCases"));
                 json.put("averagePositivityPercentage",weeklyAverages.get("averagePositivityPercentage"));
-                jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
+                String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
                 helperClass.writeJsonFile(jsonString,weeklyJsonFilePath);
             }
 

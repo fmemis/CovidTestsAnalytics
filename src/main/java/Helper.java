@@ -1,3 +1,4 @@
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.pdfbox.cos.COSDocument;
@@ -9,6 +10,12 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -36,27 +43,52 @@ public class Helper {
 
         int totalTests = 0;
         int totalCases = 0;
-
+        int count = 0;
         for (int i = 0; i < numberOfDays; ++i) {
             mapper = new ObjectMapper();
-            json = mapper.readValue(new File(jsonFilesPath + dateFormat.format(date) + ".json"), ReportPojo.class);
-            totalTests += json.getTotalTests();
-            totalCases += json.getCases();
-            //jsonMap.put(date,json);
+            String jsonFilePath = jsonFilesPath + dateFormat.format(date) + ".json";
+            File f = new File(jsonFilePath);
+            if (f.exists()) {
+                json = mapper.readValue(f, ReportPojo.class);
+                totalTests += json.getTotalTests();
+                totalCases += json.getCases();
+                count++;
+                //jsonMap.put(date,json);
+            }
             date = date.minusDays(1);
         }
 
-        int averageTests =  totalTests /  7;
-        int averageCases = totalCases / 7;
+        int averageTests =  totalTests /  count;
+        int averageCases = totalCases / count;
         float averagePositivityPercentage = (float) (100 * totalCases) / (float) totalTests;
 
         averageMap.put("averageTests",String.valueOf(averageTests));
         averageMap.put("averageCases",String.valueOf(averageCases));
         averageMap.put("averagePositivityPercentage",String.valueOf(averagePositivityPercentage));
 
-
         return averageMap;
 
+    }
+
+    void createDailyJson(int actualToday, int totalMoriaka, int totalRapid, int totalCases, int deaths, int intubatedPatients, float percentage, String jsonFilePath) throws JsonProcessingException {
+        var mapper = new ObjectMapper();
+        var json = mapper.createObjectNode();
+        json.put("cases", totalCases);
+        json.put("totalTests", actualToday);
+        json.put("pcrTests", totalMoriaka);
+        json.put("rapidTests", totalRapid);
+        json.put("positivityPercentage", percentage);
+        json.put("deaths",deaths);
+        json.put("intubatedPatients", intubatedPatients);
+        String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
+        this.writeJsonFile(jsonString,jsonFilePath);
+    }
+
+    void copyPdfFromEodySite(String pdfUrl, String filePath) throws IOException {
+        URL url = new URL(pdfUrl);
+        InputStream in = url.openStream();
+        Files.copy(in, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+        in.close();
     }
 
      Map<String, String> parseEodyPdf(File f) throws IOException, InterruptedException {
