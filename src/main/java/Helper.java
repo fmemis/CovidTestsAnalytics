@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.Thread.sleep;
+
 public class Helper {
 
     private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -84,7 +86,8 @@ public class Helper {
         this.writeJsonFile(jsonString,jsonFilePath);
     }
 
-    void copyPdfFromEodySite(String pdfUrl, String filePath) throws IOException {
+    void copyPdfFromEodySite(String pdfUrl, String filePath) throws IOException, InterruptedException {
+        sleep(2000);
         URL url = new URL(pdfUrl);
         InputStream in = url.openStream();
         Files.copy(in, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
