@@ -1,11 +1,17 @@
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.io.FileUtils;
 import org.apache.pdfbox.cos.COSDocument;
 import org.apache.pdfbox.io.RandomAccessFile;
 import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.jsoup.HttpStatusException;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -84,6 +90,30 @@ public class Helper {
         json.put("intubatedPatients", intubatedPatients);
         String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
         this.writeJsonFile(jsonString,jsonFilePath);
+    }
+
+    void copyHtmlFromSites(String htmlUrl, String filePath) throws IOException {
+        Document htmlDoc = Jsoup.connect(htmlUrl).get();
+/*        Jsoup.parse(htmlDoc.html()).text();
+        String parsedText = Jsoup.parse(htmlDoc.html()).text().replaceAll(" ", " ");*/
+        htmlDoc.html();
+        File file = new File(filePath);
+        FileUtils.writeStringToFile(file, htmlDoc.html());
+    }
+
+    Map<String, String> parseOdigosTouPolithHtml(File f) throws IOException {
+        Map<String,String> data = new HashMap<String, String>();
+        String htmlString = FileUtils.readFileToString(f);
+        Element table = Jsoup.parse(htmlString).select("table").get(0);
+        Elements columns = table.select("tr").get(1).select("td");
+
+        data.put("cases",columns.get(1).text().replaceAll("\\D+",""));
+        data.put("deaths",columns.get(7).text().replaceAll("\\D+",""));
+        data.put("pcrTests",columns.get(3).text().replaceAll("\\D+",""));
+        data.put("rapidTests",findValueInText("Rapid Ag έχουν ελεγχθεί\\s+([0-9]{1,8})",
+                Jsoup.parse(htmlString).text().replaceAll(" ", " ")));
+        data.put("intubatedPatients",columns.get(6).text().replaceAll("\\D+",""));
+        return data;
     }
 
     void copyPdfFromEodySite(String pdfUrl, String filePath) throws IOException, InterruptedException {
