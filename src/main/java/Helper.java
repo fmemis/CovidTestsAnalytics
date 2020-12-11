@@ -35,15 +35,13 @@ public class Helper {
 
     private static final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    Map<String, String> calculateWeeklyStatistics(String jsonFilesPath) throws IOException {
-        return calculatePeriodicalStatistics(jsonFilesPath, 7);
+    Map<String, String> calculateWeeklyStatistics(String jsonFilesPath, LocalDate date) throws IOException {
+        return calculatePeriodicalStatistics(jsonFilesPath, 7, date);
     }
 
-    Map<String, String> calculatePeriodicalStatistics(String jsonFilesPath, int numberOfDays) throws IOException {
+    Map<String, String> calculatePeriodicalStatistics(String jsonFilesPath, int numberOfDays, LocalDate date) throws IOException {
 
         Map<String, String> averageMap = new HashMap<String, String>();
-
-        LocalDate date = LocalDate.now();
 
         //Map<LocalDate, ReportPojo> jsonMap = new HashMap<LocalDate, ReportPojo>();
         ObjectMapper mapper;
@@ -51,6 +49,9 @@ public class Helper {
 
         int totalTests = 0;
         int totalCases = 0;
+        int totalPcrs = 0;
+        int totalDeaths = 0;
+        int totalIntubated = 0;
         int count = 0;
         for (int i = 0; i < numberOfDays; ++i) {
             mapper = new ObjectMapper();
@@ -60,6 +61,9 @@ public class Helper {
                 json = mapper.readValue(f, ReportPojo.class);
                 totalTests += json.getTotalTests();
                 totalCases += json.getCases();
+                totalPcrs += json.getPcrTests();
+                totalDeaths += json.getDeaths();
+                totalIntubated += json.getIntubatedPatients();
                 count++;
                 //jsonMap.put(date,json);
             }
@@ -68,11 +72,21 @@ public class Helper {
 
         int averageTests =  totalTests /  count;
         int averageCases = totalCases / count;
+        int averagePcrs = totalPcrs / count;
+        int averageRapids = (totalTests - totalPcrs) / count;
+        int averageDeaths = totalDeaths / count;
+        int averageIntubated = totalIntubated / count;
         float averagePositivityPercentage = (float) (100 * totalCases) / (float) totalTests;
+        float averagePcrPostitivityPercentage = (float) (100 * totalCases) / (float) totalPcrs;
 
         averageMap.put("averageTests",String.valueOf(averageTests));
         averageMap.put("averageCases",String.valueOf(averageCases));
+        averageMap.put("averagePcrs",String.valueOf(averagePcrs));
+        averageMap.put("averageRapids",String.valueOf(averageRapids));
+        averageMap.put("averageDeaths",String.valueOf(averageDeaths));
+        averageMap.put("averageIntubated",String.valueOf(averageIntubated));
         averageMap.put("averagePositivityPercentage",String.valueOf(averagePositivityPercentage));
+        averageMap.put("averagePcrPostitivityPercentage",String.valueOf(averagePcrPostitivityPercentage));
 
         return averageMap;
 

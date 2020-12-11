@@ -21,9 +21,7 @@ public class Main {
     private static final DateTimeFormatter dateTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final String reportTimeString = " 18:15";
     private static final String saveDirectory = "/home/fotis/EodyReports/";
-    private static final String startingExistingPdfReport = "/home/fotis/EodyReports/20201126.pdf";
-    private static final String startingExistingHtmlReport = "/home/fotis/EodyReports/20201124.html";
-    private static final String weeklyAverageDay = "FRIDAY";
+    private static final String weeklyAverageDay = "SATURDAY";
     private static String remoteSourceChoice = "odigostoupoliti";
     //private static String remoteSourceChoice = "eody";
 
@@ -44,9 +42,9 @@ public class Main {
         Helper helperClass = new Helper();
         Map<String, String> weeklyAverages;
         while(true) {
-
             diff = 0;
             LocalDate currentDate = LocalDate.now();
+
             String currentFilePath = "";
             String stringUrl = "";
             if (remoteSourceChoice.equals("odigostoupoliti")) {
@@ -152,15 +150,28 @@ public class Main {
             if (currentDate.getDayOfWeek().toString().equals(weeklyAverageDay)) {
                 var mapper = new ObjectMapper();
                 var json = mapper.createObjectNode();
-                weeklyAverages = helperClass.calculateWeeklyStatistics(saveDirectory);
-                System.out.println("Έγιναν " + weeklyAverages.get("averageTests") + " tests κατά μέσο όρο την προηγούμενη βδομαδα");
-                System.out.println("Yπήρχαν " + weeklyAverages.get("averageCases") + " κρούσματα κατά μέσο όρο την προηγούμενη βδομαδα");
-                System.out.println("Το ποσοστο θετικότητας της βδομάδας ήταν " + weeklyAverages.get("averagePositivityPercentage"));
+                weeklyAverages = helperClass.calculateWeeklyStatistics(saveDirectory, currentDate);
+                System.out.println("Για τη βδομάδα " + currentDate.minusDays(7) + " με " + currentDate
+                    + " οι μέσοι όροι για την καθε κατηγορία στοιχείων είναι:");
+                System.out.println("Τέστς ανα μερα:  " + weeklyAverages.get("averageTests"));
+                System.out.println("Μοριακά: " + weeklyAverages.get("averagePcrs"));
+                System.out.println("Rapids: " + weeklyAverages.get("averageRapids"));
+                System.out.println("Κρούσματα ανά μέρα: " + weeklyAverages.get("averageCases"));
+                System.out.println("Διασωληνωμένοι ανά μέρα: " + weeklyAverages.get("averageIntubated"));
+                System.out.println("Νεκροί ανά μέρα: " + weeklyAverages.get("averageDeaths"));
+                System.out.println("Το ποσοστο θετικότητας ήταν " + weeklyAverages.get("averagePositivityPercentage") + "%");
+                System.out.println("Το ποσοστο θετικότητας στα μοριακά τεστ ήταν  " + weeklyAverages.get("averagePcrPostitivityPercentage") + "%");
+
                 mapper = new ObjectMapper();
                 json = mapper.createObjectNode();
                 json.put("averageTests",weeklyAverages.get("averageTests"));
+                json.put("averageCases",weeklyAverages.get("averagePcrs"));
+                json.put("averageCases",weeklyAverages.get("averageRapids"));
                 json.put("averageCases",weeklyAverages.get("averageCases"));
+                json.put("averageCases",weeklyAverages.get("averageIntubated"));
+                json.put("averageCases",weeklyAverages.get("averageDeaths"));
                 json.put("averagePositivityPercentage",weeklyAverages.get("averagePositivityPercentage"));
+                json.put("averagePcrPostitivityPercentage",weeklyAverages.get("averagePcrPostitivityPercentage"));
                 String jsonString = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
                 helperClass.writeJsonFile(jsonString,weeklyJsonFilePath);
             }
